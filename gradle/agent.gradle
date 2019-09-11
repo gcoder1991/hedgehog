@@ -1,0 +1,40 @@
+tasks.withType(Test) {
+    jvmArgs "-javaagent:${configurations.quasar.singleFile}" // =v, =d
+}
+
+applicationDefaultJvmArgs = [
+    "-javaagent:${configurations.quasar.singleFile}" // =v, =d
+]
+
+
+ant.taskdef(name:'scanSuspendables', classname:'co.paralleluniverse.fibers.instrument.SuspendablesScanner',
+        classpath: "build/classes/main:build/resources/main:${configurations.runtime.asPath}")
+ant.scanSuspendables(
+        auto: false,
+        suspendablesFile: "$sourceSets.main.output.resourcesDir/META-INF/suspendables",
+        supersFile: "$sourceSets.main.output.resourcesDir/META-INF/suspendable-supers") {
+    fileset(dir:  sourceSets.main.output.classesDirs)
+}
+
+/* 自动检测标记挂起方法*/
+ant.taskdef(name:'scanSuspendables', classname:'co.paralleluniverse.fibers.instrument.SuspendablesScanner',
+        classpath: "build/classes/main:build/resources/main:${configurations.runtime.asPath}")
+ant.scanSuspendables(
+        auto: true,
+        suspendablesFile: "$sourceSets.main.output.resourcesDir/META-INF/suspendables",
+        supersFile: "$sourceSets.main.output.resourcesDir/META-INF/suspendable-supers") {
+    fileset(dir: sourceSets.main.output.classesDirs)
+}
+
+
+compileJava {
+    doLast {
+
+    }
+}
+compileTestJava.dependsOn processTestResources
+compileTestJava {
+    doLast {
+
+    }
+}

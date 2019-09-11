@@ -1,0 +1,110 @@
+buildscript {
+    repositories {
+        mavenCentral()
+
+    }
+    dependencies {
+        classpath "org.springframework.boot:spring-boot-gradle-plugin:2.1.7.RELEASE"
+        classpath 'com.google.protobuf:protobuf-gradle-plugin:0.8.10'
+    }
+}
+
+
+group = 'org.ek.hedgehog'
+version = '0.1.0'
+description = 'THE GAME SERVER FRAMWORK.'
+
+subprojects {
+    apply plugin: 'java'
+    apply plugin: 'idea'
+    apply plugin: 'org.springframework.boot'
+    apply plugin: 'io.spring.dependency-management'
+    apply plugin: 'com.google.protobuf'
+
+    repositories {
+        mavenCentral()
+    }
+
+    [compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
+    sourceCompatibility = 12
+    targetCompatibility = 12
+
+    ext.classifier = ':jdk8' // ':'
+
+
+    ext {
+        quasarVer = '0.8.0'
+        junitVer = '4.12'
+    }
+
+    protobuf {
+        // Configure the protoc executable
+        protoc {
+            // Download from repositories
+            artifact = 'com.google.protobuf:protoc:3.9.1'
+            generatedFilesBaseDir = "$projectDir/gen"
+        }
+    }
+
+    clean {
+        delete protobuf.generatedFilesBaseDir
+    }
+
+    idea {
+        module {
+            // proto files and generated Java files are automatically added as
+            // source dirs.
+            // If you have additional sources, add them here:
+            // sourceDirs += file("/path/to/other/sources");
+        }
+    }
+
+    configurations {
+        quasar
+        annotationProcessor
+    }
+
+    dependencies {
+
+        // https://mvnrepository.com/artifact/io.netty/netty-all
+        compile group: 'io.netty', name: 'netty-all', version: '4.1.39.Final'
+
+        // https://mvnrepository.com/artifact/org.springframework.boot/spring-boot
+        compile group: 'org.springframework.boot', name: 'spring-boot', version: '2.1.7.RELEASE'
+
+        // https://mvnrepository.com/artifact/org.slf4j/slf4j-api
+        compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.28'
+
+        // https://mvnrepository.com/artifact/com.google.guava/guava
+        compile group: 'com.google.guava', name: 'guava', version: '28.1-jre'
+
+        // https://mvnrepository.com/artifact/com.google.protobuf/protobuf-java
+        compile group: 'com.google.protobuf', name: 'protobuf-java', version: '3.9.1'
+
+        compileOnly 'org.projectlombok:lombok:1.18.8'
+        annotationProcessor 'org.projectlombok:lombok:1.18.8'
+
+        // https://mvnrepository.com/artifact/co.paralleluniverse/quasar-core/
+        compile group: 'co.paralleluniverse', name: 'quasar-core', version: '0.8.0'
+        // https://mvnrepository.com/artifact/co.paralleluniverse/quasar-actors
+        compile group: 'co.paralleluniverse', name: 'quasar-actors', version: '0.8.0'
+
+        quasar "co.paralleluniverse:quasar-core:0.8.0@jar"
+
+        testCompile "junit:junit:$junitVer"
+    }
+
+
+    configurations.all {
+        resolutionStrategy {
+            failOnVersionConflict()
+        }
+    }
+
+
+
+}
+
+
+
+
