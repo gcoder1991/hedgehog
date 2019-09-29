@@ -1,7 +1,7 @@
 import com.ek.hedgehog.core.proto.BasicTransform;
 import com.ek.hedgehog.core.proto.MessageType;
 import org.ek.hedgehog.network.DefaultChannelInitializer;
-import org.ek.hedgehog.network.FiberHandler;
+import org.ek.hedgehog.handler.FiberHandler;
 import org.ek.hedgehog.network.NettyTcpClient;
 import org.ek.hedgehog.network.NettyTcpServer;
 

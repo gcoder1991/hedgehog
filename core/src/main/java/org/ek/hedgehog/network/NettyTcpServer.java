@@ -3,7 +3,9 @@ package org.ek.hedgehog.network;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.*;
+import io.netty.channel.epoll.EpollChannelOption;
 import io.netty.channel.epoll.EpollEventLoopGroup;
+import io.netty.channel.epoll.EpollMode;
 import io.netty.channel.epoll.EpollServerSocketChannel;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
@@ -12,6 +14,7 @@ import io.netty.util.concurrent.DefaultThreadFactory;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
+import org.ek.hedgehog.network.util.NettyUtils;
 import org.ek.hedgehog.util.SystemUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,6 +25,9 @@ import java.util.concurrent.CompletableFuture;
 @Getter
 @ToString
 public class NettyTcpServer implements Server {
+
+    public static final int DEFAULT_TCP_SO_BACKLOG = 1024;
+    public static final boolean DEFAULT_TCP_NO_DELAY = true;
 
     private static final Logger LOG = LoggerFactory.getLogger(NettyTcpServer.class);
 
@@ -37,9 +43,9 @@ public class NettyTcpServer implements Server {
     private volatile boolean started;
 
     public NettyTcpServer() {
-        this(SystemUtils.isLinux() ? new EpollEventLoopGroup(1) : new NioEventLoopGroup(1),
-                SystemUtils.isLinux() ? new EpollEventLoopGroup() : new NioEventLoopGroup(),
-                SystemUtils.isLinux() ? EpollServerSocketChannel.class : NioServerSocketChannel.class);
+        this(NettyUtils.createEventLoopGroup(1),
+                NettyUtils.createEventLoopGroup(),
+                NettyUtils.defaultServerSocketChannel());
     }
 
     public NettyTcpServer(EventLoopGroup bossGroup, EventLoopGroup workerGroup, Class<? extends ServerChannel> channelClass) {
@@ -48,9 +54,13 @@ public class NettyTcpServer implements Server {
         bootstrap.group(bossGroup, workerGroup)
                 .channel(channelClass)
                 .option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
-                .childOption(ChannelOption.TCP_NODELAY, true)
-                .childOption(ChannelOption.SO_BACKLOG, 1024)
+                .childOption(ChannelOption.TCP_NODELAY, DEFAULT_TCP_NO_DELAY)
+                .childOption(ChannelOption.SO_BACKLOG, DEFAULT_TCP_SO_BACKLOG)
                 .childOption(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT);
+        if (channelClass.equals(EpollServerSocketChannel.class)) {
+            bootstrap.childOption(EpollChannelOption.EPOLL_MODE,
+                    EpollMode.LEVEL_TRIGGERED);
+        }
     }
 
     @Override

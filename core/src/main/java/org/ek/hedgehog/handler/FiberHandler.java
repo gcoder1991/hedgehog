@@ -1,4 +1,4 @@
-package org.ek.hedgehog.network;
+package org.ek.hedgehog.handler;
 
 import co.paralleluniverse.actors.Actor;
 import co.paralleluniverse.actors.ActorRef;
@@ -9,6 +9,7 @@ import com.ek.hedgehog.core.proto.BasicTransform;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
+import org.ek.hedgehog.network.ActorProtocol;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

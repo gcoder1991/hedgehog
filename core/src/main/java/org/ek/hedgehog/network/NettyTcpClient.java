@@ -3,15 +3,14 @@ package org.ek.hedgehog.network;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.*;
-import io.netty.channel.epoll.EpollEventLoopGroup;
+import io.netty.channel.epoll.EpollChannelOption;
+import io.netty.channel.epoll.EpollMode;
 import io.netty.channel.epoll.EpollSocketChannel;
-import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
-import io.netty.channel.socket.nio.NioSocketChannel;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
-import org.ek.hedgehog.util.SystemUtils;
+import org.ek.hedgehog.network.util.NettyUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,6 +23,8 @@ public class NettyTcpClient implements Client {
 
     private static final Logger LOG = LoggerFactory.getLogger(NettyTcpClient.class);
 
+    public static final boolean DEFAULT_TCP_NO_DELAY = true;
+
     private final Bootstrap bootstrap = new Bootstrap();
 
     private final EventLoopGroup loopGroup;
@@ -33,16 +34,20 @@ public class NettyTcpClient implements Client {
     private volatile boolean connected;
 
     public NettyTcpClient() {
-        this(SystemUtils.isLinux() ? new EpollEventLoopGroup(1) : new NioEventLoopGroup(),
-                SystemUtils.isLinux() ? EpollSocketChannel.class : NioSocketChannel.class);
+        this(NettyUtils.createEventLoopGroup(1),
+                NettyUtils.defaultClientSocketChannel());
     }
 
     public NettyTcpClient(EventLoopGroup loopGroup, Class<? extends SocketChannel> channelClass) {
         this.loopGroup = loopGroup;
         this.bootstrap.group(loopGroup)
                 .channel(channelClass)
-                .option(ChannelOption.TCP_NODELAY, true)
+                .option(ChannelOption.TCP_NODELAY, DEFAULT_TCP_NO_DELAY)
                 .option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT);
+        if (channelClass == EpollSocketChannel.class) {
+            bootstrap.option(EpollChannelOption.EPOLL_MODE,
+                    EpollMode.EDGE_TRIGGERED);
+        }
     }
 
     @Setter

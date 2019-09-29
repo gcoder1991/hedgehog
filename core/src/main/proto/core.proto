@@ -1,15 +1,23 @@
 syntax = "proto3";
 
-option java_package = "com.ek.hedgehog.core.proto";
+option java_package = "org.ek.hedgehog.core.proto";
 option optimize_for = SPEED;
 option java_multiple_files = true;
 
 
 enum MessageType {
 	UNKNOW = 0;
-	HEARTBEAT = 1;
-	COMMON = 2;
-	RPC = 3;
+	PING = 1;
+	PONG = 2;
+	COMMON = 3;
+	RPC_REQ = 4;
+	RPC_RESP = 5;
+}
+
+enum RetCode {
+	OK = 0;
+	UNKNOW_ERROR = 1;
+	REMOTE_SERVER_ERROR = 2;
 }
 
 message TransformLog {
@@ -21,14 +29,24 @@ message BasicTransform {
 	int64 hashKey = 2;
 	repeated TransformLog history = 3;
 	bytes content = 4;
+	RetCode ret = 5;
 }
 
 message RpcRequest {
 	int64 rid = 1;
-	
+	string className = 2;
+	string methodName = 3;
+	bytes parms = 4;
 }
 
 message RpcResponse {
 	int64 rid = 1;
+	int32 ret = 2;
+	bytes result = 3;
 }
 
+
+message Commom {
+	int32 cmd = 1;
+	bytes content = 2;
+}

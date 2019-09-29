@@ -83,11 +83,23 @@ subprojects {
         // https://mvnrepository.com/artifact/com.google.protobuf/protobuf-java
         compile group: 'com.google.protobuf', name: 'protobuf-java', version: '3.9.1'
 
+        // https://mvnrepository.com/artifact/com.esotericsoftware/kryo
+        compile group: 'com.esotericsoftware', name: 'kryo', version: '4.0.2'
+
+        // https://mvnrepository.com/artifact/io.protostuff/protostuff-runtime
+        compile group: 'io.protostuff', name: 'protostuff-core', version: '1.6.0'
+
+        // https://mvnrepository.com/artifact/io.protostuff/protostuff-runtime
+        compile group: 'io.protostuff', name: 'protostuff-runtime', version: '1.6.0'
+
+
         compileOnly 'org.projectlombok:lombok:1.18.8'
         annotationProcessor 'org.projectlombok:lombok:1.18.8'
 
         // https://mvnrepository.com/artifact/co.paralleluniverse/quasar-core/
-        compile group: 'co.paralleluniverse', name: 'quasar-core', version: '0.8.0'
+        compile(group: 'co.paralleluniverse', name: 'quasar-core', version: '0.8.0') {
+            exclude group: 'org.objenesis', module: 'objenesis'
+        }
         // https://mvnrepository.com/artifact/co.paralleluniverse/quasar-actors
         compile group: 'co.paralleluniverse', name: 'quasar-actors', version: '0.8.0'
 
@@ -102,7 +114,6 @@ subprojects {
             failOnVersionConflict()
         }
     }
-
 
 
 }
