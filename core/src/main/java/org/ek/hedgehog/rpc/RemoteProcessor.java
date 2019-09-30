@@ -1,25 +1,32 @@
 package org.ek.hedgehog.rpc;
 
 import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.fibers.Suspendable;
 import com.google.protobuf.ByteString;
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.ByteBufInputStream;
+import io.netty.buffer.ByteBufOutputStream;
 import io.netty.buffer.PooledByteBufAllocator;
-import io.protostuff.LinkedBuffer;
 import io.protostuff.ProtostuffIOUtil;
 import io.protostuff.Schema;
 import io.protostuff.runtime.RuntimeSchema;
 import lombok.Data;
-import org.ek.hedgehog.core.proto.RpcRequest;
+import org.ek.hedgehog.core.proto.*;
 import org.ek.hedgehog.handler.Processor;
+import org.ek.hedgehog.network.Connection;
+import org.ek.hedgehog.network.ConnectionManager;
 import org.ek.hedgehog.util.AddressUtils;
 import org.ek.hedgehog.util.Varint32Utils;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class RemoteProcessor<S extends RpcService> implements Processor {
@@ -28,16 +35,20 @@ public class RemoteProcessor<S extends RpcService> implements Processor {
 
     private final long address;
 
+    private ConnectionManager connectionManager;
+
+
     private Class<S> clazz;
 
     private Map<String, RemoteMethodInfo> methodMap = new HashMap<>();
 
-    public RemoteProcessor(String ip, int port) {
-        this(AddressUtils.addressToLong(ip, port));
+    public RemoteProcessor(String ip, int port, ConnectionManager connectionManager) {
+        this(AddressUtils.addressToLong(ip, port), connectionManager);
     }
 
-    public RemoteProcessor(final long address) {
+    public RemoteProcessor(final long address, ConnectionManager connectionManager) {
         this.address = address;
+        this.connectionManager = connectionManager;
         this.clazz = (Class<S>) ((ParameterizedType) getClass().getGenericSuperclass()).getActualTypeArguments()[0];
         Method[] declaredMethods = clazz.getDeclaredMethods();
         for (Method method : declaredMethods) {
@@ -49,6 +60,21 @@ public class RemoteProcessor<S extends RpcService> implements Processor {
 
     private long newId() {
         return idGen.getAndIncrement();
+    }
+
+    @Suspendable
+    private RpcResponse remoteCall(RpcRequest request) throws InterruptedException, ExecutionException, TimeoutException {
+        Connection connection = connectionManager.getConnection(address);
+        BasicTransform.Builder basic = BasicTransform.newBuilder();
+        basic.setType(MessageType.RPC_REQ);
+        basic.setContent(request.toByteString());
+
+        CompletableFuture<RpcResponse> future = new CompletableFuture<>();
+
+        // TODO future container
+
+        connection.send(basic.build().toByteArray());
+        return future.get(5, TimeUnit.SECONDS);
     }
 
 
@@ -64,23 +90,43 @@ public class RemoteProcessor<S extends RpcService> implements Processor {
 
         ByteBuf buf = PooledByteBufAllocator.DEFAULT.buffer();
         Varint32Utils.writeRawVarint32(buf, parameterTypes.length);
-        try (ByteBufInputStream inputStream = new ByteBufInputStream(buf)) {
+        try (ByteBufOutputStream outputStream = new ByteBufOutputStream(buf)) {
             for (int i = 0; i < parameterTypes.length; i++) {
-                LinkedBuffer lb = LinkedBuffer.allocate(LinkedBuffer.DEFAULT_BUFFER_SIZE);
                 Schema schema = RuntimeSchema.getSchema(parameterTypes[i]);
-                int size = ProtostuffIOUtil.writeTo(lb, params[i], schema);
-                Varint32Utils.writeRawVarint32(buf, size);
-                ProtostuffIOUtil.mergeFrom(inputStream, params[i], schema);
+                ProtostuffIOUtil.writeDelimitedTo(outputStream, params[i], schema);
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
         req.setParms(ByteString.copyFrom(buf.array()));
 
-        // TODO  FIND CONNECTION AND  CALL THE RPC SERVER
+        RpcResponse response = null;
 
-
-        return null;
+        try {
+            response = remoteCall(req.build());
+            int ret = response.getRet();
+            if (ret == RetCode.OK_VALUE) {
+                Class returnType = methodInfo.getMethod().getReturnType();
+                if (returnType != Void.class) {
+                    Object n = null;
+                    try {
+                        n = returnType.getConstructor().newInstance();
+                        ProtostuffIOUtil.mergeDelimitedFrom(response.getResult().newInput(), n, RuntimeSchema.getSchema(returnType));
+                    } catch (InstantiationException | IllegalAccessException | NoSuchMethodException
+                            | IOException | InvocationTargetException e) {
+                        e.printStackTrace();
+                    }
+                    return n;
+                } else {
+                    return null;
+                }
+            } else {
+                throw new RuntimeException();
+            }
+        } catch (InterruptedException | ExecutionException | TimeoutException e) {
+            // remote error
+            throw new RuntimeException();
+        }
     }
 
 

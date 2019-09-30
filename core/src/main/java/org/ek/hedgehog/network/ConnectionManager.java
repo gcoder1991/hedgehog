@@ -1,7 +1,7 @@
 package org.ek.hedgehog.network;
 
-public class ConnectionManager {
+public interface ConnectionManager {
 
-
+    Connection getConnection(long addr);
 
 }
