@@ -92,6 +92,9 @@ subprojects {
         // https://mvnrepository.com/artifact/io.protostuff/protostuff-runtime
         compile group: 'io.protostuff', name: 'protostuff-runtime', version: '1.6.0'
 
+        // https://mvnrepository.com/artifact/org.ow2.asm/asm
+        compile group: 'org.ow2.asm', name: 'asm', version: '7.1'
+
 
         compileOnly 'org.projectlombok:lombok:1.18.8'
         annotationProcessor 'org.projectlombok:lombok:1.18.8'
@@ -99,6 +102,7 @@ subprojects {
         // https://mvnrepository.com/artifact/co.paralleluniverse/quasar-core/
         compile(group: 'co.paralleluniverse', name: 'quasar-core', version: '0.8.0') {
             exclude group: 'org.objenesis', module: 'objenesis'
+            exclude group: 'org.ow2.asm', module:'asm'
         }
         // https://mvnrepository.com/artifact/co.paralleluniverse/quasar-actors
         compile group: 'co.paralleluniverse', name: 'quasar-actors', version: '0.8.0'

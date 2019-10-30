@@ -14,6 +14,8 @@ import org.ek.hedgehog.core.proto.*;
 import org.ek.hedgehog.handler.Processor;
 import org.ek.hedgehog.network.Connection;
 import org.ek.hedgehog.network.ConnectionManager;
+import org.ek.hedgehog.rpc.exception.RpcFailedException;
+import org.ek.hedgehog.rpc.exception.RpcSerializeException;
 import org.ek.hedgehog.util.AddressUtils;
 import org.ek.hedgehog.util.Varint32Utils;
 
@@ -70,9 +72,8 @@ public class RemoteProcessor<S extends RpcService> implements Processor {
         basic.setContent(request.toByteString());
 
         CompletableFuture<RpcResponse> future = new CompletableFuture<>();
-
-        // TODO future container
-
+        RpcContext rpcContext = connection.getRpcContext();
+        rpcContext.newRequest(request, future);
         connection.send(basic.build().toByteArray());
         return future.get(5, TimeUnit.SECONDS);
     }
@@ -114,18 +115,18 @@ public class RemoteProcessor<S extends RpcService> implements Processor {
                         ProtostuffIOUtil.mergeDelimitedFrom(response.getResult().newInput(), n, RuntimeSchema.getSchema(returnType));
                     } catch (InstantiationException | IllegalAccessException | NoSuchMethodException
                             | IOException | InvocationTargetException e) {
-                        e.printStackTrace();
+                        throw new RpcSerializeException("rpc deserialize fail!", e);
                     }
                     return n;
                 } else {
                     return null;
                 }
             } else {
-                throw new RuntimeException();
+                throw new RpcFailedException();
             }
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
             // remote error
-            throw new RuntimeException();
+            throw new RpcFailedException();
         }
     }
 

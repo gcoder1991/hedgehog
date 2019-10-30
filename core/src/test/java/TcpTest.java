@@ -1,7 +1,8 @@
-import com.ek.hedgehog.core.proto.BasicTransform;
-import com.ek.hedgehog.core.proto.MessageType;
+import org.ek.hedgehog.core.proto.BasicTransform;
 import org.ek.hedgehog.handler.FiberHandler;
-import org.ek.hedgehog.network.*;
+import org.ek.hedgehog.network.DefaultChannelInitializer;
+import org.ek.hedgehog.network.NettyTcpClient;
+import org.ek.hedgehog.network.NettyTcpServer;
 import org.junit.Test;
 
 import java.net.InetSocketAddress;
@@ -19,7 +20,7 @@ public class TcpTest {
                     .initChannelInitializer(new DefaultChannelInitializer(new FiberHandler()))
                     .connect().thenRun(()->{
                 for (int i = 0; i < 4; i++) {
-                    client.getChannel().writeAndFlush(BasicTransform.newBuilder().setType(MessageType.HEARTBEAT).build());
+
                     try {
                         Thread.sleep(1000);
                     } catch (InterruptedException e) {
